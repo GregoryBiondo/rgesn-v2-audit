@@ -620,6 +620,22 @@ function difficulty_badge(string $d): string {
                     </div>
                     <div id="editFormError" class="alert alert-danger d-none" role="alert"></div>
                 </form>
+
+                <hr class="my-3">
+
+                <div class="mb-2">
+                    <label for="importXlsxFile" class="form-label fw-medium">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Importer depuis un fichier tableur (XLSX/ODS)
+                    </label>
+                    <input type="file" class="form-control" id="importXlsxFile"
+                           accept=".xlsx,.ods,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.oasis.opendocument.spreadsheet">
+                    <div class="form-text">Remplace les informations du projet, de l'auditeur·ice et les critères par les données du tableau (Excel ou LibreOffice).</div>
+                    <button type="button" class="btn btn-outline-secondary mt-2" id="btnImportXlsx">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" id="importXlsxSpinner"></span>
+                        Importer le fichier
+                    </button>
+                    <div id="importXlsxStatus" class="small mt-2"></div>
+                </div>
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
@@ -689,6 +705,57 @@ const TOTAL_CRITERIA = <?= count($audit['criteria']) ?>;
             errorDiv.textContent = err.message || 'Une erreur est survenue.';
             errorDiv.classList.remove('d-none');
         } finally {
+            spinner.classList.add('d-none');
+        }
+    });
+
+    // ── Import XLSX ─────────────────────────────────────────────────────────
+    document.getElementById('btnImportXlsx').addEventListener('click', async () => {
+        const fileInput = document.getElementById('importXlsxFile');
+        const statusDiv = document.getElementById('importXlsxStatus');
+        const spinner   = document.getElementById('importXlsxSpinner');
+        const btn       = document.getElementById('btnImportXlsx');
+
+        statusDiv.textContent = '';
+        statusDiv.className = 'small mt-2';
+
+        if (!fileInput.files || !fileInput.files.length) {
+            statusDiv.classList.add('text-danger');
+            statusDiv.textContent = 'Veuillez sélectionner un fichier XLSX ou ODS.';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('id', AUDIT_ID);
+        formData.append('file', fileInput.files[0]);
+        const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        if (csrfMeta) {
+            formData.append('csrf_token', csrfMeta.content);
+        }
+
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+        statusDiv.classList.add('text-muted');
+        statusDiv.textContent = 'Importation en cours…';
+
+        try {
+            const response = await fetch('api.php?action=import_audit_xlsx', {
+                method: 'POST',
+                headers: csrfMeta ? { 'X-CSRF-Token': csrfMeta.content } : {},
+                body: formData,
+            });
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || 'Échec de l\'importation');
+            }
+            statusDiv.className = 'small mt-2 text-success';
+            statusDiv.textContent = 'Importation réussie. Rechargement de la page…';
+            window.setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+            statusDiv.className = 'small mt-2 text-danger';
+            statusDiv.textContent = err.message || 'Une erreur est survenue.';
+        } finally {
+            btn.disabled = false;
             spinner.classList.add('d-none');
         }
     });

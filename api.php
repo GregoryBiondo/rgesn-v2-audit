@@ -29,6 +29,7 @@ define('AUDITS_DIR', __DIR__ . '/data/audits/');
 define('CRITERES_FILE', __DIR__ . '/data/criteria/criteria_settings.json');
 
 require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/xlsx_importer.php';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -209,6 +210,9 @@ switch ($action) {
         break;
     case 'update_audit':
         action_update_audit($input);
+        break;
+    case 'import_audit_xlsx':
+        action_import_audit_xlsx($input);
         break;
     case 'list_audits':
         action_list_audits();
